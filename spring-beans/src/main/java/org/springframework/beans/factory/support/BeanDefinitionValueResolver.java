@@ -16,15 +16,6 @@
 
 package org.springframework.beans.factory.support;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.TypeConverter;
@@ -32,15 +23,14 @@ import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.BeanDefinitionHolder;
-import org.springframework.beans.factory.config.RuntimeBeanNameReference;
-import org.springframework.beans.factory.config.RuntimeBeanReference;
-import org.springframework.beans.factory.config.TypedStringValue;
+import org.springframework.beans.factory.config.*;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
+
+import java.lang.reflect.Array;
+import java.util.*;
 
 /**
  * Helper class for use in bean factory implementations,
@@ -84,6 +74,7 @@ class BeanDefinitionValueResolver {
 
 
 	/**
+	 * 该方法包含了所有对注入类型的处理
 	 * Given a PropertyValue, return a value, resolving any references to other
 	 * beans in the factory if necessary. The value could be:
 	 * <li>A BeanDefinition, which leads to the creation of a corresponding
@@ -105,6 +96,10 @@ class BeanDefinitionValueResolver {
 	public Object resolveValueIfNecessary(Object argName, @Nullable Object value) {
 		// We must check each value to see whether it requires a runtime reference
 		// to another bean to be resolved.
+		/**
+		 * 这里对RuntimeBeanReference进行解析，RuntimeBeanReference是在对BeanDefinition进行
+		 * 解析时生成的数据对象
+		 */
 		if (value instanceof RuntimeBeanReference) {
 			RuntimeBeanReference ref = (RuntimeBeanReference) value;
 			return resolveReference(argName, ref);
@@ -130,6 +125,7 @@ class BeanDefinitionValueResolver {
 					ObjectUtils.getIdentityHexString(bd);
 			return resolveInnerBean(argName, innerBeanName, bd);
 		}
+		// 对ManagedArray进行解析
 		else if (value instanceof ManagedArray) {
 			// May need to resolve contained runtime references.
 			ManagedArray array = (ManagedArray) value;
@@ -154,18 +150,22 @@ class BeanDefinitionValueResolver {
 			}
 			return resolveManagedArray(argName, (List<?>) value, elementType);
 		}
+		// 对ManagedList进行解析
 		else if (value instanceof ManagedList) {
 			// May need to resolve contained runtime references.
 			return resolveManagedList(argName, (List<?>) value);
 		}
+		// 对ManagedSet进行解析
 		else if (value instanceof ManagedSet) {
 			// May need to resolve contained runtime references.
 			return resolveManagedSet(argName, (Set<?>) value);
 		}
+		// 对ManagedMap进行解析
 		else if (value instanceof ManagedMap) {
 			// May need to resolve contained runtime references.
 			return resolveManagedMap(argName, (Map<?, ?>) value);
 		}
+		// 对ManagedProperties进行解析
 		else if (value instanceof ManagedProperties) {
 			Properties original = (Properties) value;
 			Properties copy = new Properties();
@@ -185,6 +185,7 @@ class BeanDefinitionValueResolver {
 			});
 			return copy;
 		}
+		// 对TypedStringValue进行解析
 		else if (value instanceof TypedStringValue) {
 			// Convert value to target type here.
 			TypedStringValue typedStringValue = (TypedStringValue) value;
@@ -346,14 +347,20 @@ class BeanDefinitionValueResolver {
 	}
 
 	/**
+	 * 解析引用的bean
 	 * Resolve a reference to another bean in the factory.
 	 */
 	@Nullable
 	private Object resolveReference(Object argName, RuntimeBeanReference ref) {
 		try {
+			/**
+			 * 从RuntimeBeanReference取得reference的名字，这个RuntimeBeanReference
+			 * 是在载入BeanDefinition时根据配置生成的
+			 */
 			Object bean;
 			String refName = ref.getBeanName();
 			refName = String.valueOf(doEvaluate(refName));
+			// 如果ref是在双亲IOC容器中,那就到双亲IOC容器中获取
 			if (ref.isToParent()) {
 				if (this.beanFactory.getParentBeanFactory() == null) {
 					throw new BeanCreationException(
@@ -363,6 +370,10 @@ class BeanDefinitionValueResolver {
 				}
 				bean = this.beanFactory.getParentBeanFactory().getBean(refName);
 			}
+			/**
+			 * 在当前IOC容器中去获取Bean，这里会触发一个getBean的过程，如果依赖注入
+			 * 没有发生，这里会触发响应的依赖注入的发生
+			 */
 			else {
 				bean = this.beanFactory.getBean(refName);
 				this.beanFactory.registerDependentBean(refName, this.beanName);
@@ -380,6 +391,7 @@ class BeanDefinitionValueResolver {
 	}
 
 	/**
+	 * 解析每一个managed array中的元素，如果有引用那么解析引用
 	 * For each element in the managed array, resolve reference if necessary.
 	 */
 	private Object resolveManagedArray(Object argName, List<?> ml, Class<?> elementType) {
@@ -392,10 +404,12 @@ class BeanDefinitionValueResolver {
 	}
 
 	/**
+	 * 对每个list中元素进行解析
 	 * For each element in the managed list, resolve reference if necessary.
 	 */
 	private List<?> resolveManagedList(Object argName, List<?> ml) {
 		List<Object> resolved = new ArrayList<>(ml.size());
+		// 通过递归对List元素进行解析
 		for (int i = 0; i < ml.size(); i++) {
 			resolved.add(
 					resolveValueIfNecessary(new KeyedArgName(argName, i), ml.get(i)));

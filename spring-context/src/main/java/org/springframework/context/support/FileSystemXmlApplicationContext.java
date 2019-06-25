@@ -23,6 +23,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
 
 /**
+ * 独立的XML应用程序上下文，从文件系统或URL获取上下文定义文件*
+ * 将普通路径解释为相对文件系统位置（例如“mydir / myfile.txt”）。
+ * 适用于测试线束以及独立环境
  * Standalone XML application context, taking the context definition files
  * from the file system or from URLs, interpreting plain paths as relative
  * file system locations (e.g. "mydir/myfile.txt"). Useful for test harnesses
@@ -139,6 +142,7 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 		super(parent);
 		setConfigLocations(configLocations);
 		if (refresh) {
+			// 启动整个调用过程  将会调用容器的refresh，是载入BeanDefinition的入口
 			refresh();
 		}
 	}

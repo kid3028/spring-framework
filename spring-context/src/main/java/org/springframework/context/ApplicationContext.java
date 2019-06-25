@@ -24,20 +24,29 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.lang.Nullable;
 
 /**
+ * 提供了应用配置的核心接口。在应用运行中是只读的，但是如何有支持实现那么可以在运行中重新加载
  * Central interface to provide configuration for an application.
  * This is read-only while the application is running, but may be
  * reloaded if the implementation supports this.
  *
  * <p>An ApplicationContext provides:
  * <ul>
+ * 从ListableBeanFactory继承来的访问应用程序组件的bean工厂的方法
  * <li>Bean factory methods for accessing application components.
  * Inherited from {@link org.springframework.beans.factory.ListableBeanFactory}.
+ *
+ * 以通用的方式加载资源文件的能力
  * <li>The ability to load file resources in a generic fashion.
  * Inherited from the {@link org.springframework.core.io.ResourceLoader} interface.
+ *
+ * 向监听器发布事件
  * <li>The ability to publish events to registered listeners.
  * Inherited from the {@link ApplicationEventPublisher} interface.
+ *
+ * 解析消息的能力，支持国际化
  * <li>The ability to resolve messages, supporting internationalization.
  * Inherited from the {@link MessageSource} interface.
+ *
  * <li>Inheritance from a parent context. Definitions in a descendant context
  * will always take priority. This means, for example, that a single parent
  * context can be used by an entire web application, while each servlet has
@@ -59,6 +68,7 @@ public interface ApplicationContext extends EnvironmentCapable, ListableBeanFact
 		MessageSource, ApplicationEventPublisher, ResourcePatternResolver {
 
 	/**
+	 * 返回应用上下文的唯一id
 	 * Return the unique id of this application context.
 	 * @return the unique id of the context, or {@code null} if none
 	 */
@@ -66,24 +76,28 @@ public interface ApplicationContext extends EnvironmentCapable, ListableBeanFact
 	String getId();
 
 	/**
+	 * 应用的名称
 	 * Return a name for the deployed application that this context belongs to.
 	 * @return a name for the deployed application, or the empty String by default
 	 */
 	String getApplicationName();
 
 	/**
+	 * 上下文的名称
 	 * Return a friendly name for this context.
 	 * @return a display name for this context (never {@code null})
 	 */
 	String getDisplayName();
 
 	/**
+	 * 上下文第一次加载的时间戳
 	 * Return the timestamp when this context was first loaded.
 	 * @return the timestamp (ms) when this context was first loaded
 	 */
 	long getStartupDate();
 
 	/**
+	 * 返回父上下文
 	 * Return the parent context, or {@code null} if there is no parent
 	 * and this is the root of the context hierarchy.
 	 * @return the parent context, or {@code null} if there is no parent

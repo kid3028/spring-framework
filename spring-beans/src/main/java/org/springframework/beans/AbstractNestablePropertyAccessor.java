@@ -16,25 +16,8 @@
 
 package org.springframework.beans;
 
-import java.beans.PropertyChangeEvent;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedActionException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.convert.ConversionException;
@@ -44,6 +27,11 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
+
+import java.beans.PropertyChangeEvent;
+import java.lang.reflect.*;
+import java.security.PrivilegedActionException;
+import java.util.*;
 
 /**
  * A basic {@link ConfigurablePropertyAccessor} that provides the necessary
@@ -270,6 +258,12 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 		}
 	}
 
+	/**
+	 * 依赖注入发生的地方
+	 * @param tokens
+	 * @param pv
+	 * @throws BeansException
+	 */
 	protected void setPropertyValue(PropertyTokenHolder tokens, PropertyValue pv) throws BeansException {
 		if (tokens.keys != null) {
 			processKeyedProperty(tokens, pv);
@@ -290,6 +284,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 		Assert.state(tokens.keys != null, "No token keys");
 		String lastKey = tokens.keys[tokens.keys.length - 1];
 
+		// 这里对array进行注入
 		if (propValue.getClass().isArray()) {
 			Class<?> requiredType = propValue.getClass().getComponentType();
 			int arrayIndex = Integer.parseInt(lastKey);
@@ -316,6 +311,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 			}
 		}
 
+		// 这里对list进行注入
 		else if (propValue instanceof List) {
 			Class<?> requiredType = ph.getCollectionType(tokens.keys.length);
 			List<Object> list = (List<Object>) propValue;
@@ -352,6 +348,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 			}
 		}
 
+		// 这里对map进行注入
 		else if (propValue instanceof Map) {
 			Class<?> mapKeyType = ph.getMapKeyType(tokens.keys.length);
 			Class<?> mapValueType = ph.getMapValueType(tokens.keys.length);
@@ -381,6 +378,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 	private Object getPropertyHoldingValue(PropertyTokenHolder tokens) {
 		// Apply indexes and map keys: fetch value for all keys but the last one.
 		Assert.state(tokens.keys != null, "No token keys");
+		// 设置tokens的索引和keys
 		PropertyTokenHolder getterTokens = new PropertyTokenHolder(tokens.actualName);
 		getterTokens.canonicalName = tokens.canonicalName;
 		getterTokens.keys = new String[tokens.keys.length - 1];
@@ -388,6 +386,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 
 		Object propValue;
 		try {
+			// 取得bean中对注入对象的引用，比如array、list、map、set
 			propValue = getPropertyValue(getterTokens);
 		}
 		catch (NotReadablePropertyException ex) {
